@@ -18,6 +18,10 @@ def generate_id(item):
         new_id += 1
     return new_id
 
+def find_index(item, target_id):
+    index = next((i for i, obj in enumerate(item) if obj["id"] == target_id), -1)
+    return index
+
 ######################################################################
 # RETURN HEALTH OF THE APP
 ######################################################################
@@ -95,9 +99,11 @@ def create_picture():
 def update_picture(id):
     json_data = request.get_json()
     if data and json_data and id:
-        index = id - 1
-        data[index] = json_data
-        return {"success": "picture updated"}, 200
+        matches = match(data, id)
+        if len(matches) == 1:
+            index = find_index(data, id)
+            data[index] = json_data
+            return {"success": "picture updated"}, 200
     return {"message": "Internal server error"}, 500
 
 
@@ -107,10 +113,16 @@ def update_picture(id):
 @app.route("/picture/<int:id>", methods=["DELETE"])
 def delete_picture(id):
     if data and id:
-        index = id - 1
-        try:
-            data.pop(index)
-            return {"success": "picture deleted"}, 204
-        except:
+        matches = match(data, id)
+        if len(matches) == 0:
             return {"message": "Picture does not exist"}, 404
+        elif len(matches) == 1:
+            index = find_index(data, id)
+            try:
+                data.pop(index)
+                return {"success": "picture deleted"}, 204
+            except:
+                return {"message": "Picture does not exist"}, 404
+        else:
+            return {"message": "Internal server error"}, 500
     return {"message": "Internal server error"}, 500
